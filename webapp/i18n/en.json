@@ -1,0 +1,14 @@
+{
+  "skyroom.close": "Close",
+  "skyroom.creator-has-invited-to-meeting": "{creator} invited you to a meeting",
+  "skyroom.failed": "Failed to join the meeting",
+  "skyroom.default-title": "Skyroom Meeting",
+  "skyroom.join-meeting": "Skyroom MEETING",
+  "skyroom.link-valid-until": "Meeting link valid until: ",
+  "skyroom.maximize": "Maximize",
+  "skyroom.meeting-topic": "Meeting Topic: ",
+  "skyroom.minimize": "Minimize",
+  "skyroom.move-down": "Move down",
+  "skyroom.move-up": "Move up",
+  "skyroom.open-in-new-tab": "Open in new tab"
+}

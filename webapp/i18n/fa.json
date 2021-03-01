@@ -1,0 +1,14 @@
+{
+  "skyroom.close": "بستن",
+  "skyroom.creator-has-invited-to-meeting": "{creator} شما را به یک جلسه ویدئوکنفرانس دعوت کرده اند",
+  "skyroom.failed": "حین ورود به جلسه خطایی رخ داد",
+  "skyroom.default-title": "جلسه‌ی اسکای روم",
+  "skyroom.join-meeting": "ورود به جلسه",
+  "skyroom.link-valid-until": "لینک ورود تا این زمان معتبر است: ",
+  "skyroom.maximize": "بزرگ کردن صفحه",
+  "skyroom.meeting-topic": "موضوع جلسه: ",
+  "skyroom.minimize": "کوچک کردن صفحه",
+  "skyroom.move-down": "پایین",
+  "skyroom.move-up": "بالا",
+  "skyroom.open-in-new-tab": "بازکردن در تب جدید"
+}
