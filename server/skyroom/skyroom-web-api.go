@@ -10,26 +10,42 @@ import (
 	jsonitor "github.com/json-iterator/go"
 )
 
+type APIError interface {
+	error
+	Code() int
+}
+
 type WebAPI interface {
-	GetServices() ([]*Service, error)
-	CreateRoomIfNotExists(name, title string) (*RoomInfo, error)
-	CreateLoginURL(roomId int, userId, nickname string, ttl int) (string, error)
+	GetServices() ([]*Service, APIError)
+	CreateRoomIfNotExists(name, title string) (*RoomInfo, APIError)
+	CreateLoginURL(roomId int, userId, nickname string, ttl int) (string, APIError)
 }
 
-type APIError struct {
-	code    int
-	message string
+type apiError struct {
+	req           map[string]interface{}
+	code          int
+	message       string
+	internalError string
 }
 
-func (err *APIError) Error() string {
-	return fmt.Sprintf("Code %d: %s", err.code, err.message)
+func (err *apiError) Code() int {
+	return err.code
+}
+
+func (err *apiError) Error() string {
+	jsonErr := make(map[string]interface{})
+	jsonErr["request"] = err.req
+	jsonErr["error"] = fmt.Sprintf("Code %d: %s", err.code, err.message)
+	jsonErr["internalError"] = err.internalError
+	body, _ := json.Marshal(jsonErr)
+	return string(body)
 }
 
 var (
-	ErrorInvalidAPIKey  = &APIError{code: 11, message: "invalid-api-key"}
-	ErrorInvalidRequest = &APIError{code: 12, message: "invalid-request"}
-	ErrorFailed         = &APIError{code: 14, message: "failed"}
-	ErrorNotFound       = &APIError{code: 15, message: "not-found"}
+	ErrorInvalidAPIKey  = apiError{code: 11, message: "invalid-api-key"}
+	ErrorInvalidRequest = apiError{code: 12, message: "invalid-request"}
+	ErrorFailed         = apiError{code: 14, message: "failed"}
+	ErrorNotFound       = apiError{code: 15, message: "not-found"}
 )
 
 type skyroomWebAPI struct {
@@ -70,17 +86,39 @@ type RoomInfo struct {
 	UpdateTime      int64  `json:"update_time"`
 }
 
-func makeErrorFromCode(code int) error {
+func makeAPIErrorFromError(internal error, action string, params map[string]interface{}) APIError {
+	apiErr := apiError{code: 14, message: "failed"}
+	apiErr.req = make(map[string]interface{})
+	apiErr.internalError = internal.Error()
+	return &apiErr
+}
+
+func makeAPIErrorFromCode(code int, action string, params map[string]interface{}) APIError {
+	data := make(map[string]interface{})
+	data["action"] = action
+	if len(params) > 0 {
+		data["params"] = params
+	}
 	if code == 10 || code == 11 {
-		return ErrorInvalidAPIKey
+		err := apiError{code: 11, message: "invalid-api-key"}
+		err.req = data
+		return &err
 	} else if code == 12 || code == 13 {
-		return ErrorInvalidRequest
+		err := apiError{code: 12, message: "invalid-request"}
+		err.req = data
+		return &err
 	} else if code == 14 {
-		return ErrorFailed
+		err := apiError{code: 14, message: "failed"}
+		err.req = data
+		return &err
 	} else if code == 15 {
-		return ErrorNotFound
+		err := apiError{code: 15, message: "not-found"}
+		err.req = data
+		return &err
 	} else {
-		return ErrorFailed
+		err := apiError{code: 14, message: "failed"}
+		err.req = data
+		return &err
 	}
 }
 
@@ -88,7 +126,7 @@ func MakeWebAPI(url, apiKey string) WebAPI {
 	return &skyroomWebAPI{URL: url, APIKey: apiKey}
 }
 
-func (skyroom *skyroomWebAPI) sendRequest(action string, params map[string]interface{}) ([]byte, error) {
+func (skyroom *skyroomWebAPI) sendRequest(action string, params map[string]interface{}) ([]byte, APIError) {
 	url1 := fmt.Sprintf("%s/skyroom/api/%s", skyroom.URL, skyroom.APIKey)
 	data := make(map[string]interface{})
 	data["action"] = action
@@ -98,21 +136,21 @@ func (skyroom *skyroomWebAPI) sendRequest(action string, params map[string]inter
 
 	body, err := json.Marshal(data)
 	if err != nil {
-		return nil, err
+		return nil, makeAPIErrorFromError(err, action, params)
 	}
 
 	resp, postErr := http.Post(url1, "application/json", bytes.NewReader(body))
 	if postErr != nil {
-		return nil, postErr
+		return nil, makeAPIErrorFromError(postErr, action, params)
 	}
 	respBody, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, readErr
+		return nil, makeAPIErrorFromError(readErr, action, params)
 	}
 	return respBody, nil
 }
 
-func (skyroom *skyroomWebAPI) GetServices() ([]*Service, error) {
+func (skyroom *skyroomWebAPI) GetServices() ([]*Service, APIError) {
 	var list []*Service
 	data, err := skyroom.sendRequest("getServices", nil)
 	if err != nil {
@@ -120,32 +158,33 @@ func (skyroom *skyroomWebAPI) GetServices() ([]*Service, error) {
 	}
 	jsonErr := json.Unmarshal(data, &list)
 	if jsonErr != nil {
-		return list, jsonErr
+		return list, makeAPIErrorFromError(jsonErr, "getServices", nil)
 	}
 	return list, nil
 }
 
-func (skyroom *skyroomWebAPI) getRoomByName(name string) (*RoomInfo, error) {
+func (skyroom *skyroomWebAPI) getRoomByName(name string) (*RoomInfo, APIError) {
 	var room RoomInfo
-	data, err := skyroom.sendRequest("getRoom", map[string]interface{}{"name": name})
+	params := map[string]interface{}{"name": name}
+	data, err := skyroom.sendRequest("getRoom", params)
 	if err != nil {
 		return nil, err
 	}
 	ok := jsonitor.Get(data, "ok").ToBool()
 	if !ok {
 		code := jsonitor.Get(data, "error_code").ToInt()
-		return nil, makeErrorFromCode(code)
+		return nil, makeAPIErrorFromCode(code, "getRoom", params)
 		// return nil, errors.New(jsonitor.Get(data, "error_message").ToString())
 	}
 	jsonResult := jsonitor.Get(data, "result").ToString()
 	jsonErr := jsonitor.UnmarshalFromString(jsonResult, &room)
 	if jsonErr != nil {
-		return nil, jsonErr
+		return nil, makeAPIErrorFromError(jsonErr, "getRoom", nil)
 	}
 	return &room, nil
 }
 
-func (skyroom *skyroomWebAPI) createRoom(name, title string) error {
+func (skyroom *skyroomWebAPI) createRoom(name, title string) APIError {
 	params := map[string]interface{}{
 		"name":           name,
 		"title":          title,
@@ -160,15 +199,15 @@ func (skyroom *skyroomWebAPI) createRoom(name, title string) error {
 	ok := jsonitor.Get(data, "ok").ToBool()
 	if !ok {
 		code := jsonitor.Get(data, "error_code").ToInt()
-		return makeErrorFromCode(code)
+		return makeAPIErrorFromCode(code, "createRoom", params)
 		// return errors.New(jsonitor.Get(data, "error_message").ToString())
 	}
 	return nil
 }
 
-func (skyroom *skyroomWebAPI) CreateRoomIfNotExists(name, title string) (*RoomInfo, error) {
+func (skyroom *skyroomWebAPI) CreateRoomIfNotExists(name, title string) (*RoomInfo, APIError) {
 	room, err := skyroom.getRoomByName(name)
-	if err.Error() == ErrorNotFound.Error() {
+	if err.Code() == ErrorNotFound.Code() {
 		_ = skyroom.createRoom(name, title)
 		room, err = skyroom.getRoomByName(name)
 		if err != nil {
@@ -181,14 +220,14 @@ func (skyroom *skyroomWebAPI) CreateRoomIfNotExists(name, title string) (*RoomIn
 
 }
 
-func (skyroom *skyroomWebAPI) CreateLoginURL(roomId int, userId, nickname string, ttl int) (string, error) {
+func (skyroom *skyroomWebAPI) CreateLoginURL(roomId int, userId, nickname string, ttl int) (string, APIError) {
 	params := map[string]interface{}{
 		"room_id":    roomId,
 		"user_id":    userId,
 		"nickname":   nickname,
 		"access":     3,
 		"concurrent": 1,
-		"language":   "en",
+		"language":   "fa",
 		"ttl":        ttl,
 	}
 	data, err := skyroom.sendRequest("createLoginUrl", params)
@@ -198,7 +237,7 @@ func (skyroom *skyroomWebAPI) CreateLoginURL(roomId int, userId, nickname string
 	ok := jsonitor.Get(data, "ok").ToBool()
 	if !ok {
 		code := jsonitor.Get(data, "error_code").ToInt()
-		return "", makeErrorFromCode(code)
+		return "", makeAPIErrorFromCode(code, "createLoginUrl", params)
 		// return nil, errors.New(jsonitor.Get(data, "error_message").ToString())
 	}
 	link := jsonitor.Get(data, "result").ToString()
