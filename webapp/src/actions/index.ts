@@ -1,14 +1,14 @@
 import {PostTypes} from 'mattermost-redux/action_types';
+import {ClientError} from 'mattermost-redux/client/client4';
 import {DispatchFunc, GetStateFunc, ActionFunc, ActionResult} from 'mattermost-redux/types/actions';
 import {Post} from 'mattermost-redux/types/posts';
 import Client from '../client';
 
 export function startMeeting(channelId: string): ActionFunc {
-    return async (dispatch: DispatchFunc, getState: GetStateFunc): Promise<ActionResult> => {
-        try {
-            const result = await Client.startMeeting(channelId);
+    return (dispatch: DispatchFunc, getState: GetStateFunc): Promise<ActionResult> => {
+        return Client.startMeeting(channelId).then((result) => {
             return {data: result};
-        } catch (error) {
+        }).catch((error: ClientError) => {
             const post: Post = {
                 id: 'skyroomPlugin' + Date.now(),
                 create_at: Date.now(),
@@ -22,7 +22,7 @@ export function startMeeting(channelId: string): ActionFunc {
                 parent_id: '',
                 original_id: '',
                 reply_count: 0,
-                message: 'We could not start a meeting at this time.',
+                message: `We could not start a meeting at this time:\n Error: ${error.message}`,
                 type: 'system_ephemeral',
                 props: {},
                 metadata: {
@@ -48,7 +48,7 @@ export function startMeeting(channelId: string): ActionFunc {
             });
 
             return {error};
-        }
+        });
     };
 }
 

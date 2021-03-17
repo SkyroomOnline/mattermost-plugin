@@ -17,7 +17,7 @@ class PluginClass {
             (channel: Channel) => {
                 store.dispatch(startMeeting(channel.id));
             },
-            'Request Skyroom Access'
+            'ّInvite to Skyroom'
         );
         registry.registerPostTypeComponent('custom_skyroom', (props: {post: Post}) => (<I18nProvider><PostTypeSkyroom post={props.post}/></I18nProvider>));
         // registry.registerWebSocketEventHandler('custom_skyroom_config_update', () => store.dispatch(loadConfig()));

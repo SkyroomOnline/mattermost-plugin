@@ -56,6 +56,7 @@ func (p *Plugin) handleStart(w http.ResponseWriter, r *http.Request) {
 	joinLink, meetingErr := p.startMeeting(user, channel, "")
 	if meetingErr != nil {
 		http.Error(w, meetingErr.Error(), http.StatusInternalServerError)
+		return
 	}
 	b, err := json.Marshal(map[string]string{"join_link": joinLink})
 	if err != nil {
