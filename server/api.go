@@ -58,7 +58,8 @@ func (p *Plugin) handleStart(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, meetingErr.Error(), http.StatusInternalServerError)
 		return
 	}
-	b, err := json.Marshal(map[string]string{"join_link": joinLink})
+	resp := map[string]string{"join_link": joinLink}
+	b, err := json.Marshal(resp)
 	if err != nil {
 		mlog.Error("Error marshaling the MeetingID to json", mlog.Err(err))
 		http.Error(w, "Internal error", http.StatusInternalServerError)
@@ -87,7 +88,7 @@ func (p *Plugin) handleJoin(w http.ResponseWriter, r *http.Request) {
 
 	user, appErr := p.API.GetUser(userID)
 	if appErr != nil {
-		mlog.Debug("Unable to the user", mlog.Err(appErr))
+		mlog.Debug("Unable to get the user", mlog.Err(appErr))
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -98,7 +99,8 @@ func (p *Plugin) handleJoin(w http.ResponseWriter, r *http.Request) {
 	if joinErr != nil {
 		http.Error(w, joinErr.Error(), http.StatusInternalServerError)
 	}
-	b, err := json.Marshal(map[string]string{"skyroom_link": skyroomLink})
+	resp := map[string]string{"skyroom_link": skyroomLink}
+	b, err := json.Marshal(resp)
 	if err != nil {
 		mlog.Error("Error marshaling the MeetingID to json", mlog.Err(err))
 		http.Error(w, "Internal error", http.StatusInternalServerError)

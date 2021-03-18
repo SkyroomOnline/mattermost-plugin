@@ -109,10 +109,6 @@ func (p *Plugin) startMeeting(user *model.User, channel *model.Channel, rootID s
 		return "", roomErr
 	}
 
-	siteURL := *p.API.GetConfig().ServiceSettings.SiteURL
-	if siteURL[len(siteURL)-1] == '/' {
-		siteURL = siteURL[:len(siteURL)-2]
-	}
 	meetingLinkValidUntil := time.Now().Add(30 * time.Minute)
 
 	params := InvitationContext{
@@ -123,7 +119,7 @@ func (p *Plugin) startMeeting(user *model.User, channel *model.Channel, rootID s
 	jsonParams, _ := json.Marshal(params)
 	encrypted, _ := Encrypt([]byte(configs.GetEncryptionKey()), string(jsonParams))
 
-	invitationURL := fmt.Sprintf("%s/plugins/online.skyroom.skyroom/api/v1/join?p=%s", siteURL, encrypted) //plugins/online.skyroom.skyroom/api/v1/join
+	invitationURL := fmt.Sprintf("/plugins/online.skyroom.skyroom/api/v1/join?p=%s", encrypted) //plugins/online.skyroom.skyroom/api/v1/join
 
 	post := &model.Post{
 		UserId:    user.Id,
@@ -148,6 +144,9 @@ func (p *Plugin) startMeeting(user *model.User, channel *model.Channel, rootID s
 }
 
 func (p *Plugin) joinMeeting(user *model.User, parameters string) (string, error) {
+	if user == nil {
+		return "", errors.New("no-user-found")
+	}
 	configs := p.getConfiguration()
 	decrypted, _ := Decrypt([]byte(configs.GetEncryptionKey()), parameters)
 	var invitationctx InvitationContext
@@ -164,7 +163,15 @@ func (p *Plugin) joinMeeting(user *model.User, parameters string) (string, error
 		return "", errors.New("link-has-expired")
 	}
 	skyRoomId := invitationctx.RoomId
-	skyroomLink, linkErr := p.skyroomAPI.CreateLoginURL(skyRoomId, user.Id, user.Nickname, configs.SkyroomLinkValidTime*60)
+	nickName := user.GetFullName()
+	if len(nickName) < 1 {
+		nickName = user.Nickname
+	}
+	if len(nickName) < 1 {
+		nickName = user.Username
+	}
+
+	skyroomLink, linkErr := p.skyroomAPI.CreateLoginURL(skyRoomId, user.Id, nickName, configs.SkyroomLinkValidTime*60)
 	if linkErr != nil {
 		return "", linkErr
 	}
