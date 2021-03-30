@@ -9,7 +9,7 @@ export default class Icon extends React.PureComponent {
             <span
                 style={style.iconStyle}
                 aria-hidden='true'
-                dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA}}
+                dangerouslySetInnerHTML={{__html: Svgs.SKYROOM_GRAY}}
             />
         );
     }
