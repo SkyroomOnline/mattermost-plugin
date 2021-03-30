@@ -9,7 +9,7 @@ const manifest = JSON.parse(`
   "support_url": "https://github.com/skyroomonline/mattermost-plugin-skyroom/issues",
   "release_notes_url": "",
   "icon_path": "assets/icon.svg",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "min_server_version": "5.2.0",
   "server": {
     "executables": {
