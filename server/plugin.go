@@ -14,10 +14,10 @@ import (
 	"github.com/skyroomonline/mattermost-plugin-skyroom/server/skyroom"
 )
 
-const skyroomNameSchemeAsk = "ask"
-const skyroomNameSchemeWords = "words"
-const skyroomNameSchemeUUID = "uuid"
-const skyroomNameSchemeMattermost = "mattermost"
+// const skyroomNameSchemeAsk = "ask"
+// const skyroomNameSchemeWords = "words"
+// const skyroomNameSchemeUUID = "uuid"
+// const skyroomNameSchemeMattermost = "mattermost"
 const configChangeEvent = "config_update"
 
 type UserConfig struct {
@@ -86,13 +86,6 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
-type User struct {
-	Avatar string `json:"avatar"`
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	ID     string `json:"id"`
-}
-
 type InvitationContext struct {
 	RoomId    int    `json:"roomId"`
 	ChannelId string `json:"channelId"`
@@ -103,8 +96,11 @@ func (p *Plugin) startMeeting(user *model.User, channel *model.Channel, rootID s
 	// l := p.b.GetServerLocalizer()
 	configs := p.getConfiguration()
 	roomId := fmt.Sprintf("mattermost-%s", channel.Id)
-
-	skyRoom, roomErr := p.skyroomAPI.CreateRoomIfNotExists(roomId, channel.DisplayName)
+	roomTitle := channel.DisplayName
+	if len(roomTitle) < 2 {
+		roomTitle = "private chat"
+	}
+	skyRoom, roomErr := p.skyroomAPI.CreateRoomIfNotExists(roomId, roomTitle)
 	if roomErr != nil {
 		return "", roomErr
 	}

@@ -13,6 +13,7 @@ import (
 type APIError interface {
 	error
 	Code() int
+	SetInternalError(err error)
 }
 
 type WebAPI interface {
@@ -41,6 +42,10 @@ func (err *apiError) Error() string {
 	jsonErr["internalError"] = err.internalError
 	body, _ := json.Marshal(jsonErr)
 	return string(body)
+}
+
+func (err *apiError) SetInternalError(internalErr error) {
+	err.internalError = internalErr.Error()
 }
 
 var (
@@ -217,9 +222,10 @@ func (skyroom *skyroomWebAPI) createRoom(name, title string) APIError {
 func (skyroom *skyroomWebAPI) CreateRoomIfNotExists(name, title string) (*RoomInfo, APIError) {
 	room, err := skyroom.getRoomByName(name)
 	if err != nil && err.Code() == ErrorNotFound.Code() {
-		_ = skyroom.createRoom(name, title)
+		creationError := skyroom.createRoom(name, title)
 		room, err = skyroom.getRoomByName(name)
 		if err != nil {
+			err.SetInternalError(creationError)
 			return nil, err
 		}
 	} else if err != nil {
