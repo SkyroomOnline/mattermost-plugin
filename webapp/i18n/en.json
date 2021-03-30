@@ -1,9 +1,10 @@
 {
   "skyroom.close": "Close",
-  "skyroom.creator-has-invited-to-meeting": "{creator} invited you to a meeting",
+  "skyroom.creator-has-invited-to-meeting": "{creator} invited you to a Skyroom meeting",
   "skyroom.failed": "Failed to join the meeting",
   "skyroom.default-title": "Skyroom Meeting",
-  "skyroom.join-meeting": "Skyroom MEETING",
+  "skyroom.join-meeting": "Join Skyroom Meeting",
+  "skyroom.invite-meeting": "Invite to Skyroom",
   "skyroom.link-valid-until": "Meeting link valid until: ",
   "skyroom.maximize": "Maximize",
   "skyroom.meeting-topic": "Meeting Topic: ",
